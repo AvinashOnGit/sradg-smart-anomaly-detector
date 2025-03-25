@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Anomaly Detection Dashboard</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            width: 90%;
+            margin: 30px auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 18px;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #loading {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+            white-space: nowrap; /* Prevents text wrapping */
+        }
+        .anomaly {
+            background-color: #ff6699; /* Red for anomalies */
+        }
+        .normal {
+            background-color: #ccffcc; /* Light green for normal */
+        }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .pagination button:hover {
+            background-color: #45a049;
+        }
+        #searchInput {
+            margin-bottom: 20px;
+            padding: 10px;
+            width: 40%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .info-box {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            color: #333;
+            border-radius: 5px;
+        }
+    </style>
+    <!-- Import Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins&display=swap">
+</head>
+<body>
+
+<div class="container">
+    <h1><img src="https://img.icons8.com/ios/50/4CAF50/bar-chart.png" class="icon"> Anomaly Detection System</h1>
+    <!-- Row Color Legend -->
+    <div class="info-box" style="margin-bottom: 20px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ccc; border-radius: 5px;">
+        <strong>🔍 Legend:</strong>
+        <p>
+            🟢 <span style="color: green; font-weight: bold;">Green Rows:</span> Normal data<br>
+            🔴 <span style="color: #ff6699; font-weight: bold;">Red Rows:</span> Anomalous data
+        </p>
+    </div>
+
+    <!-- File Upload Form -->
+    <div class="form-container">
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <label for="file">📂 Upload Transaction Data (CSV):</label>
+            <input type="file" name="file" required>
+            <button type="submit">Analyze Data 📊</button>
+        </form>
+    </div>
+
+    <!-- Show "Processing" Message -->
+    {% if is_processing %}
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>🔍 Data analysis in progress... Please wait.</p>
+    </div>
+    <meta http-equiv="refresh" content="5;url=/status">
+    {% endif %}
+
+    <!-- Show Results After Processing -->
+    {% if result_data %}
+    <div class="info-box">
+        <p>✅ Data analysis complete! Below are the detected anomalies.</p>
+    </div>
+
+    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔎 Search for records...">
+
+    <div class="table-container">
+    <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid #ddd; border-radius: 5px;">
+        <table id="anomalyTable" style="width: 100%; table-layout: auto; margin-top: 10px; border-collapse: collapse;">
+
+            <thead>
+                <tr>
+                    {% for col in result_data[0].keys() %}
+                    <th onclick="sortTable({{ loop.index0 }})">{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                {% for row in result_data %}
+                <tr class="{{ 'anomaly' if row['Anomaly'] == 'Anomaly' else 'normal' }}">
+                    {% for col in row.values() %}
+                    <td>{{ col }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        <button onclick="prevPage()">Previous</button>
+        <span id="pageNumber">Page 1</span>
+        <button onclick="nextPage()">Next</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript for Sorting, Filtering, and Pagination -->
+<script>
+    let currentPage = 1;
+    const rowsPerPage = 50;
+    const table = document.getElementById("anomalyTable");
+    const tableBody = document.getElementById("tableBody");
+    let rows = Array.from(tableBody.rows);
+    let filteredRows = rows; // To store filtered data for pagination
+
+    // Show page with pagination
+    function showPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+
+        // Hide all rows first
+        rows.forEach((row) => {
+            row.style.display = "none";
+        });
+
+        // Show only rows within the page range
+        filteredRows.slice(start, end).forEach((row) => {
+            row.style.display = "";
+        });
+
+        document.getElementById("pageNumber").innerText = `Page ${page} of ${Math.ceil(filteredRows.length / rowsPerPage)}`;
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            showPage(currentPage);
+        }
+    }
+
+    function nextPage() {
+        if (currentPage < Math.ceil(filteredRows.length / rowsPerPage)) {
+            currentPage++;
+            showPage(currentPage);
+        }
+    }
+
+    showPage(currentPage); // Show first page by default
+
+    // Sort table by column
+    function sortTable(columnIndex) {
+        filteredRows.sort((a, b) => {
+            const aValue = a.cells[columnIndex].innerText.trim();
+            const bValue = b.cells[columnIndex].innerText.trim();
+
+            // Check if column data is numeric or text
+            const isNumeric = !isNaN(parseFloat(aValue)) && !isNaN(parseFloat(bValue));
+
+            return isNumeric
+                ? parseFloat(aValue) - parseFloat(bValue)
+                : aValue.localeCompare(bValue);
+        });
+
+        // Reattach rows in sorted order
+        filteredRows.forEach((row) => tableBody.appendChild(row));
+        showPage(1); // Reset to first page after sorting
+    }
+
+    // Filter table rows based on search input
+    function filterTable() {
+        const input = document.getElementById("searchInput").value.toLowerCase();
+
+        // Filter rows based on search input
+        filteredRows = rows.filter((row) => {
+            const rowText = row.innerText.toLowerCase();
+            return rowText.includes(input);
+        });
+
+        currentPage = 1;
+        showPage(currentPage);
+    }
+</script>
+</body>
+</html>

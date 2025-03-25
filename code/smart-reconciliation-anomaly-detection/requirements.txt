@@ -1,0 +1,13 @@
+Flask==2.2.5                # Web application framework
+scikit-learn==1.2.2         # Machine learning library
+pandas==1.5.3               # Data manipulation and analysis
+numpy==1.24.3               # Numerical computations
+transformers==4.31.0        # HuggingFace Transformers library
+torch==2.0.0                # PyTorch for model inference
+#smtplib==3.11.0             # SMTP for email notifications
+faker==18.10.1              # Generating synthetic data
+behave==1.2.6               # BDD framework for Python
+jinja2==3.1.2               # Template engine for Flask
+email-validator==2.0.0.post2  # Validating email formats
+sentencepiece==0.2.0
+
